@@ -71,7 +71,7 @@ class Controller
 	{
 		$outpot = [];
 
-		if (empty($_POST["token"]) && empty($_POST["score"]) &&  empty($_POST["name"]) && empty($_POST["unix_time"])) 
+		if (empty($_POST["token"]) || empty($_POST["score"]) ||  empty($_POST["name"]) || empty($_POST["unix_time"])) 
 		{
 			$outpot["status"] = "false";
 			$outpot["data"]   = "please check your query and fill all required keys";
@@ -92,8 +92,6 @@ class Controller
 		{
 			$outpot["status"] = "false";
 			$outpot["data"]   = "Wrong data";
-			// $outpot["data"]   = $un_hash_json;
-			// $outpot["data"]   = $hash_data;
 			return json_encode($outpot);
 		}
 
@@ -108,9 +106,9 @@ class Controller
 		$date_shamsy = $this->g_to_j($m_year, $m_month, $m_day, "-");
 		$date_shamsy = $date_shamsy."-".$m_time;
 
-		$$date_shamsy = date('Y-m-d H:i', strtotime($date_shamsy));
-		$date_milady  = date('Y-m-d H:i', strtotime($date_milady));
-		$set_score = $this->model->set_score($token, $date_milady, $date_shamsy, $_POST["unix_time"], $score, $name);
+		$$date_shamsy 	= date('Y-m-d H:i', strtotime($date_shamsy));
+		$date_milady  	= date('Y-m-d H:i', strtotime($date_milady));
+		$set_score 		= $this->model->set_score($token, $date_milady, $date_shamsy, $_POST["unix_time"], $score, $name);
 		if ($set_score !== true) 
 		{
 			$outpot["status"] = "false";
@@ -129,20 +127,20 @@ class Controller
 	{
 		$outpot = [];
 
-		if (empty($_GET["token"]) && empty($_GET["interval"])) 
+		if (empty($_GET["token"]) || empty($_GET["interval"])) 
 		{
 			$outpot["status"] = "false";
 			$outpot["data"]   = "token or interval is empty";
 			return json_encode($outpot);
 		}
-
+		$repeat 	= (isset($_GET["repeat"]) && $_GET["repeat"] == "off") ? false : true;
 		$token 	 	= $_GET["token"];
 		$interval 	= $_GET["interval"];
 		$order 		= (!empty($_GET["order"])) ? $_GET["order"] : null;
 
 		if ($interval == "all")
 		{
-			if (isset($_GET["name"]) && $_GET["name"] != "") 
+			if (isset($_GET["name"]) || $_GET["name"] != "") 
 			{
 				$name = $_GET["name"];
 				$get_model = $this->model->get_all_score($token, $order, $name);
@@ -164,14 +162,14 @@ class Controller
 			$date 		= $_GET["date"]; 			
 			$date_type 	= $_GET["date_type"]; 			
 			list($d_from, $d_to) = explode("|", $date);
-			if (empty($d_from)  && empty($d_to)) 
+			if (empty($d_from)  || empty($d_to)) 
 			{
 				$outpot["status"] = "false";
 				$outpot["data"]   = "date is not valid";
 				return json_encode($outpot);				
 			}
 
-			if (isset($_GET["name"]) && $_GET["name"] != "") 
+			if (isset($_GET["name"]) || $_GET["name"] != "") 
 			{
 				$name = $_GET["name"];
 				$get_model = $this->model->get_custom_score($token, $order, $d_from, $d_to, $date_type, $name);
@@ -195,14 +193,40 @@ class Controller
 			$outpot["data"]   = "please check your input";
 			return json_encode($outpot);
 		}
-		$message = $get_model;
-
-		$outpot["status"] = "ok";
-		$outpot["data"]   = $message;
-		// $outpot = $get_model->fetch_assoc();
+		
+		$message 			= ($repeat == true) ? $get_model : $this->repeat_off($get_model);
+		$outpot["status"] 	= "ok";
+		$outpot["data"]   	= $message;
 		return json_encode($outpot);
 	}
 
+
+
+
+	public function repeat_off($data)
+	{
+		$outpot = [];
+		$names	= [];
+		foreach($data as $key => $value)
+		{
+			$is_repeat = false;
+			foreach ($names as $name_key => $name_value) 
+			{
+				error_log("hi");
+				if ($value["name"] == $name_value) 
+				{
+					$is_repeat = true;
+				}
+			}
+			if ($is_repeat == false) 
+			{
+				$outpot[]	= $value;
+				$names[] 	=  $value["name"];
+			}
+		}
+
+		return $outpot;
+	}
 
 
 
